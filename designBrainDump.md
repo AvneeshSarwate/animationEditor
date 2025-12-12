@@ -1,6 +1,12 @@
 
 https://www.figma.com/design/KLoYhk7KENWzQBQB9xGdz1/Animation-editor?node-id=0-1&p=f&t=jb90IyExCULkznZq-0
 
+
+brain dump for a minimal but bang for buck animation editor
+
+
+
+
 can animate 3 types of basic data types
 - numbers
 - string-enums - value 

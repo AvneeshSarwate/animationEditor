@@ -69,3 +69,6 @@ both view mode and edit mode have their time range specified by the same time-ra
 
 
 
+longer run idea 
+- add script editor for setting values programatically - be able to query tracks/values both generally and based on UI state + selections (e.g, for all visible tracks)
+- turn script edits into macro buttons, or more generic macro controls/panels (have embeded UI api for plugins?)

@@ -51,3 +51,52 @@ export const FUNC_FONT_SIZE = 10
 
 // Misc
 export const MIN_TICK_SPACING = 50 // Minimum pixels between time ticks
+
+// =============================================================================
+// Edit Mode Constants
+// =============================================================================
+
+// Edit mode layout
+export const EDIT_SIDEBAR_WIDTH = 220
+export const NUMBER_LANE_HEIGHT = 200
+export const ENUM_LANE_HEIGHT = 120
+export const FUNC_LANE_HEIGHT = 120
+
+// Edit mode - Number lane
+export const EDIT_NUMBER_POINT_RADIUS = 8
+export const EDIT_NUMBER_POINT_RADIUS_HOVER = 10
+export const EDIT_NUMBER_LINE_WIDTH = 2
+export const EDIT_NUMBER_LINE_WIDTH_FRONT = 3
+export const EDIT_NUMBER_BOUNDS_LINE_COLOR = 'rgba(255, 255, 255, 0.2)'
+
+// Edit mode - Marker (enum/func) styling
+export const EDIT_MARKER_WIDTH = 4
+export const EDIT_MARKER_NOTCH_SIZE = 8
+export const EDIT_MARKER_BAR_WIDTH = 24
+export const EDIT_MARKER_BAR_HEIGHT_RATIO = 0.7 // Relative to lane height
+
+// Edit mode - Selection
+export const SELECTION_COLOR = '#ffcc00'
+export const SELECTION_STROKE_WIDTH = 2
+
+// Edit mode - Front track vs reference track opacity
+export const FRONT_TRACK_OPACITY = 1.0
+export const REFERENCE_TRACK_OPACITY = 0.3
+
+// Edit mode - Colors
+export const EDIT_LANE_BG_COLOR = '#12122a'
+export const EDIT_LANE_BORDER_COLOR = '#333'
+export const EDIT_SIDEBAR_BG_COLOR = '#0f0f23'
+export const EDIT_SIDEBAR_TRACK_BG = '#1a1a2e'
+export const EDIT_SIDEBAR_TRACK_BG_HOVER = '#252540'
+export const EDIT_SIDEBAR_TRACK_BG_ENABLED = '#2a2a4a'
+
+// Edit mode - Precision editor
+export const PRECISION_MODAL_WIDTH = 320
+
+// Edit mode - Collision epsilon (for enum/func no-duplicate-time rule)
+export const TIME_COLLISION_EPS = 0.1
+
+// Toast
+export const TOAST_DURATION = 3000
+export const TOAST_MAX_VISIBLE = 3

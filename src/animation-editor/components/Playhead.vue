@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { computed, inject, ref, onMounted, onUnmounted } from 'vue'
-import type { RenderScheduler } from '../renderScheduler'
+import { computed } from 'vue'
 import { PLAYHEAD_COLOR, PLAYHEAD_WIDTH } from '../constants'
 import { timeToX } from '../utils'
 
@@ -12,29 +11,13 @@ const props = defineProps<{
   leftOffset: number
 }>()
 
-const scheduler = inject<RenderScheduler>('scheduler')!
-
-// We need to track currentTime reactively via scheduler
-const displayTime = ref(props.currentTime)
-let unsubscribe: (() => void) | null = null
-
-onMounted(() => {
-  unsubscribe = scheduler.subscribe(() => {
-    displayTime.value = props.currentTime
-  })
-})
-
-onUnmounted(() => {
-  unsubscribe?.()
-})
-
 const isVisible = computed(() => {
-  return displayTime.value >= props.windowStart && displayTime.value <= props.windowEnd
+  return props.currentTime >= props.windowStart && props.currentTime <= props.windowEnd
 })
 
 const xPosition = computed(() => {
   return props.leftOffset + timeToX(
-    displayTime.value,
+    props.currentTime,
     props.windowStart,
     props.windowEnd,
     props.canvasWidth

@@ -6,6 +6,11 @@ import type { TrackDef } from './animation-editor'
 const editorRef = ref<InstanceType<typeof AnimationEditorView> | null>(null)
 const currentTime = ref(0)
 
+// Demo state - controlled by track callbacks
+const numberSliderValue = ref(0)
+const enumDisplayValue = ref('')
+const funcTriggerLog = ref('')
+
 // Mock data for testing
 const mockNumberTrack: TrackDef = {
   name: 'object1.position.x',
@@ -20,7 +25,7 @@ const mockNumberTrack: TrackDef = {
   low: 0,
   high: 1,
   updateNumber: (v) => {
-    console.log(`[number] object1.position.x = ${v.toFixed(3)}`)
+    numberSliderValue.value = v
   },
 }
 
@@ -34,7 +39,7 @@ const mockEnumTrack: TrackDef = {
     { time: 7.5, element: 'jumping' },
   ],
   updateEnum: (v) => {
-    console.log(`[enum] object1.state = "${v}"`)
+    enumDisplayValue.value = v
   },
 }
 
@@ -48,7 +53,8 @@ const mockFuncTrack: TrackDef = {
     { time: 8, element: { funcName: 'playSound', args: ['boom'] } },
   ],
   updateFunc: (funcName, ...args) => {
-    console.log(`[func] ${funcName}(${args.map(a => JSON.stringify(a)).join(', ')})`)
+    const argsStr = args.map(a => JSON.stringify(a)).join(', ')
+    funcTriggerLog.value = `${funcName}(${argsStr}) @ ${Date.now()}`
   },
 }
 
@@ -69,6 +75,32 @@ function onSliderInput(e: Event) {
 
 <template>
   <div class="app">
+    <!-- Demo display panel -->
+    <div class="demo-panel">
+      <div class="demo-item">
+        <label>Number Track Output:</label>
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.001"
+          :value="numberSliderValue"
+          disabled
+          class="demo-slider"
+        />
+        <span class="demo-value">{{ numberSliderValue.toFixed(3) }}</span>
+      </div>
+      <div class="demo-item">
+        <label>Enum Track Output:</label>
+        <div class="enum-display">{{ enumDisplayValue || '(none)' }}</div>
+      </div>
+      <div class="demo-item">
+        <label>Func Track Trigger:</label>
+        <div class="func-display">{{ funcTriggerLog || '(no trigger yet)' }}</div>
+      </div>
+    </div>
+
+    <!-- Scrub controls -->
     <div class="controls">
       <label class="time-label">
         Time: {{ currentTime.toFixed(2) }}
@@ -83,6 +115,8 @@ function onSliderInput(e: Event) {
         class="time-slider"
       />
     </div>
+
+    <!-- Animation editor -->
     <div class="editor-container">
       <AnimationEditorView
         ref="editorRef"
@@ -98,6 +132,75 @@ function onSliderInput(e: Event) {
   flex-direction: column;
   height: 100vh;
   background: #0d0d1a;
+}
+
+.demo-panel {
+  display: flex;
+  gap: 24px;
+  padding: 12px 16px;
+  background: #12122a;
+  border-bottom: 1px solid #333;
+  flex-wrap: wrap;
+}
+
+.demo-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.demo-item label {
+  color: #888;
+  font-family: system-ui, sans-serif;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.demo-slider {
+  width: 120px;
+  height: 6px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: #333;
+  border-radius: 3px;
+  outline: none;
+}
+
+.demo-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  background: #4cc9f0;
+  border-radius: 50%;
+}
+
+.demo-value {
+  color: #4cc9f0;
+  font-family: monospace;
+  font-size: 12px;
+  min-width: 50px;
+}
+
+.enum-display {
+  background: #1a1a2e;
+  padding: 4px 12px;
+  border-radius: 4px;
+  color: #f0a500;
+  font-family: monospace;
+  font-size: 12px;
+  min-width: 80px;
+  text-align: center;
+}
+
+.func-display {
+  background: #1a1a2e;
+  padding: 4px 12px;
+  border-radius: 4px;
+  color: #f72585;
+  font-family: monospace;
+  font-size: 11px;
+  min-width: 200px;
 }
 
 .controls {

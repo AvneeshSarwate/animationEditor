@@ -20,11 +20,15 @@ const scheduler = new RenderScheduler()
 // Wire up invalidation
 core.setInvalidateCallback(() => scheduler.invalidate())
 
+// Reactive state that shadows core state for Vue reactivity
+const currentTime = ref(0)
+const trackIds = ref<string[]>([])
+
 // View window state
 const windowStart = ref(0)
 const windowEnd = ref(core.duration)
 
-// Search filter (for future use)
+// Search filter
 const searchFilter = ref('')
 
 // Track list container ref for playhead positioning
@@ -38,12 +42,12 @@ provide('windowStart', windowStart)
 provide('windowEnd', windowEnd)
 provide('searchFilter', searchFilter)
 
-// Computed: filtered track IDs
+// Computed: filtered track IDs (uses reactive trackIds)
 const filteredTrackIds = computed(() => {
-  const filter = searchFilter.value.toLowerCase()
-  if (!filter) return core.orderedTrackIds
+  const filter = searchFilter.value.toLowerCase().trim()
+  if (!filter) return trackIds.value
 
-  return core.orderedTrackIds.filter(id => {
+  return trackIds.value.filter(id => {
     const track = core.getTrackById(id)
     return track && track.def.name.toLowerCase().includes(filter)
   })
@@ -71,17 +75,23 @@ onMounted(() => {
 // Exposed API
 function addTrack(def: TrackDef): boolean {
   const result = core.addTrack(def)
-  // Update window end if duration changed
-  windowEnd.value = core.duration
+  if (result) {
+    // Update reactive trackIds
+    trackIds.value = [...core.orderedTrackIds]
+    // Update window end if duration changed
+    windowEnd.value = core.duration
+  }
   return result
 }
 
 function scrubToTime(t: number): void {
   core.scrubToTime(t)
+  currentTime.value = t
 }
 
 function jumpToTime(t: number): void {
   core.jumpToTime(t)
+  currentTime.value = t
 }
 
 function setWindowRange(start: number, end: number): void {
@@ -132,7 +142,7 @@ defineExpose({
     <div class="track-list-container" ref="trackListRef">
       <TrackList :track-ids="filteredTrackIds" />
       <Playhead
-        :current-time="core.currentTime"
+        :current-time="currentTime"
         :window-start="windowStart"
         :window-end="windowEnd"
         :canvas-width="canvasAreaWidth"

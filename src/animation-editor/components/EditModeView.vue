@@ -18,21 +18,15 @@ import NumberLane from './NumberLane.vue'
 import EnumLane from './EnumLane.vue'
 import FuncLane from './FuncLane.vue'
 import PrecisionEditor from './PrecisionEditor.vue'
-import TimeRibbon from './TimeRibbon.vue'
 import TimeTicksHeader from './TimeTicksHeader.vue'
 import Playhead from './Playhead.vue'
-import { NAME_COLUMN_WIDTH } from '../constants'
+import { LANE_LABEL_WIDTH } from '../constants'
 
 const props = defineProps<{
   core: Core
   windowStart: number
   windowEnd: number
   currentTime: number
-}>()
-
-const emit = defineEmits<{
-  'update:windowStart': [value: number]
-  'update:windowEnd': [value: number]
 }>()
 
 const { warning } = useToast()
@@ -110,6 +104,12 @@ watch(lanesContainerRef, (el) => {
   })
   observer.observe(el)
 }, { immediate: true })
+
+// Watch for window changes to trigger lane rebuilds
+watch(
+  () => [props.windowStart, props.windowEnd],
+  () => incrementRenderVersion()
+)
 
 function incrementRenderVersion() {
   renderVersion.value++
@@ -422,15 +422,6 @@ function openPrecisionForSelected(fieldType: TrackType) {
     />
 
     <div class="lanes-area">
-      <!-- Time ribbon -->
-      <TimeRibbon
-        :duration="core.duration"
-        :window-start="windowStart"
-        :window-end="windowEnd"
-        @update:window-start="emit('update:windowStart', $event)"
-        @update:window-end="emit('update:windowEnd', $event)"
-      />
-
       <!-- Time ticks header -->
       <div class="ticks-header">
         <div class="lane-label-spacer"></div>
@@ -490,8 +481,8 @@ function openPrecisionForSelected(fieldType: TrackType) {
           :current-time="currentTime"
           :window-start="windowStart"
           :window-end="windowEnd"
-          :canvas-width="lanesWidth - 60"
-          :left-offset="60"
+          :canvas-width="lanesWidth - LANE_LABEL_WIDTH"
+          :left-offset="LANE_LABEL_WIDTH"
         />
 
         <!-- Precision edit buttons -->
@@ -537,8 +528,9 @@ function openPrecisionForSelected(fieldType: TrackType) {
 <style scoped>
 .edit-mode-view {
   display: flex;
-  height: 100%;
+  flex: 1;
   background: #0d0d1a;
+  overflow: hidden;
 }
 
 .lanes-area {
@@ -554,8 +546,8 @@ function openPrecisionForSelected(fieldType: TrackType) {
 }
 
 .lane-label-spacer {
-  width: 60px;
-  min-width: 60px;
+  width: v-bind('LANE_LABEL_WIDTH + "px"');
+  min-width: v-bind('LANE_LABEL_WIDTH + "px"');
   background: #0a0a1a;
   border-right: 1px solid #333;
 }

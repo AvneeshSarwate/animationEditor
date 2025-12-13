@@ -58,6 +58,7 @@ export const MIN_TICK_SPACING = 50 // Minimum pixels between time ticks
 
 // Edit mode layout
 export const EDIT_SIDEBAR_WIDTH = 220
+export const LANE_LABEL_WIDTH = 60
 export const NUMBER_LANE_HEIGHT = 200
 export const ENUM_LANE_HEIGHT = 120
 export const FUNC_LANE_HEIGHT = 120

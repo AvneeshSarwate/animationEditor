@@ -9,11 +9,14 @@ import {
   RIBBON_HANDLE_WIDTH,
 } from '../constants'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   duration: number
   windowStart: number
   windowEnd: number
-}>()
+  spacerWidth?: number
+}>(), {
+  spacerWidth: NAME_COLUMN_WIDTH,
+})
 
 const emit = defineEmits<{
   'update:windowStart': [value: number]
@@ -141,8 +144,8 @@ function onMouseUp() {
 }
 
 .name-spacer {
-  width: v-bind('NAME_COLUMN_WIDTH + "px"');
-  min-width: v-bind('NAME_COLUMN_WIDTH + "px"');
+  width: v-bind('spacerWidth + "px"');
+  min-width: v-bind('spacerWidth + "px"');
   background: #0f0f23;
 }
 

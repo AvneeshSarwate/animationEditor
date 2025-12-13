@@ -3,7 +3,7 @@ import { ref, provide, onMounted, computed } from 'vue'
 import type { TrackDef, EditorMode } from '../types'
 import { Core } from '../core'
 import { RenderScheduler } from '../renderScheduler'
-import { NAME_COLUMN_WIDTH } from '../constants'
+import { NAME_COLUMN_WIDTH, EDIT_SIDEBAR_WIDTH, LANE_LABEL_WIDTH } from '../constants'
 import TimeRibbon from './TimeRibbon.vue'
 import TimeTicksHeader from './TimeTicksHeader.vue'
 import TrackList from './TrackList.vue'
@@ -58,6 +58,13 @@ const filteredTrackIds = computed(() => {
   })
 })
 
+// Computed: TimeRibbon spacer width based on mode
+const ribbonSpacerWidth = computed(() => {
+  return mode.value === 'view'
+    ? NAME_COLUMN_WIDTH
+    : EDIT_SIDEBAR_WIDTH + LANE_LABEL_WIDTH
+})
+
 // Update canvas area width on resize
 onMounted(() => {
   const updateWidth = () => {
@@ -84,6 +91,10 @@ function toggleMode() {
     trackIds.value = [...core.orderedTrackIds]
     scheduler.invalidate()
   }
+}
+
+function onWindowChange() {
+  scheduler.invalidate()
 }
 
 // Exposed API
@@ -134,17 +145,18 @@ defineExpose({
       <span class="mode-label">{{ mode === 'view' ? 'View Mode' : 'Edit Mode' }}</span>
     </div>
 
+    <!-- Time ribbon (always visible, controls zoom/pan) -->
+    <TimeRibbon
+      :duration="core.duration"
+      v-model:window-start="windowStart"
+      v-model:window-end="windowEnd"
+      :spacer-width="ribbonSpacerWidth"
+      @update:window-start="onWindowChange"
+      @update:window-end="onWindowChange"
+    />
+
     <!-- View Mode -->
     <template v-if="mode === 'view'">
-      <!-- Time ribbon (viewport selector) -->
-      <TimeRibbon
-        :duration="core.duration"
-        v-model:window-start="windowStart"
-        v-model:window-end="windowEnd"
-        @update:window-start="scheduler.invalidate()"
-        @update:window-end="scheduler.invalidate()"
-      />
-
       <!-- Header row with search and time ticks -->
       <div class="header-row">
         <div class="name-column-header">
@@ -183,8 +195,6 @@ defineExpose({
       :window-start="windowStart"
       :window-end="windowEnd"
       :current-time="currentTime"
-      @update:window-start="windowStart = $event; scheduler.invalidate()"
-      @update:window-end="windowEnd = $event; scheduler.invalidate()"
     />
 
     <!-- Toast notifications -->

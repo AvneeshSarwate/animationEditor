@@ -8,6 +8,8 @@ const currentTime = ref(0)
 
 // Demo state - controlled by track callbacks
 const numberSliderValue = ref(0)
+const numberSliderValue2 = ref(0)
+const numberSliderValue3 = ref(0)
 const enumDisplayValue = ref('')
 const funcTriggerLog = ref('')
 
@@ -26,6 +28,39 @@ const mockNumberTrack: TrackDef = {
   high: 1,
   updateNumber: (v) => {
     numberSliderValue.value = v
+  },
+}
+
+const mockNumberTrack2: TrackDef = {
+  name: 'object1.position.y',
+  fieldType: 'number',
+  data: [
+    { time: 0, element: 0.5 },
+    { time: 2, element: 0.1 },
+    { time: 4, element: 0.7 },
+    { time: 6, element: 0.4 },
+    { time: 8, element: 0.9 },
+  ],
+  low: 0,
+  high: 1,
+  updateNumber: (v) => {
+    numberSliderValue2.value = v
+  },
+}
+
+const mockNumberTrack3: TrackDef = {
+  name: 'object1.rotation',
+  fieldType: 'number',
+  data: [
+    { time: 0, element: 0 },
+    { time: 2.5, element: 0.25 },
+    { time: 5, element: 0.75 },
+    { time: 7.5, element: 1 },
+  ],
+  low: 0,
+  high: 1,
+  updateNumber: (v) => {
+    numberSliderValue3.value = v
   },
 }
 
@@ -61,6 +96,8 @@ const mockFuncTrack: TrackDef = {
 onMounted(() => {
   if (editorRef.value) {
     editorRef.value.addTrack(mockNumberTrack)
+    editorRef.value.addTrack(mockNumberTrack2)
+    editorRef.value.addTrack(mockNumberTrack3)
     editorRef.value.addTrack(mockEnumTrack)
     editorRef.value.addTrack(mockFuncTrack)
   }
@@ -78,7 +115,7 @@ function onSliderInput(e: Event) {
     <!-- Demo display panel -->
     <div class="demo-panel">
       <div class="demo-item">
-        <label>Number Track Output:</label>
+        <label>Position X:</label>
         <input
           type="range"
           min="0"
@@ -89,6 +126,32 @@ function onSliderInput(e: Event) {
           class="demo-slider"
         />
         <span class="demo-value">{{ numberSliderValue.toFixed(3) }}</span>
+      </div>
+      <div class="demo-item">
+        <label>Position Y:</label>
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.001"
+          :value="numberSliderValue2"
+          disabled
+          class="demo-slider"
+        />
+        <span class="demo-value">{{ numberSliderValue2.toFixed(3) }}</span>
+      </div>
+      <div class="demo-item">
+        <label>Rotation:</label>
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.001"
+          :value="numberSliderValue3"
+          disabled
+          class="demo-slider"
+        />
+        <span class="demo-value">{{ numberSliderValue3.toFixed(3) }}</span>
       </div>
       <div class="demo-item">
         <label>Enum Track Output:</label>

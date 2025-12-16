@@ -18,9 +18,8 @@ import NumberLane from './NumberLane.vue'
 import EnumLane from './EnumLane.vue'
 import FuncLane from './FuncLane.vue'
 import PrecisionEditor from './PrecisionEditor.vue'
-import TimeTicksHeader from './TimeTicksHeader.vue'
 import Playhead from './Playhead.vue'
-import { NUMBER_LANE_HEIGHT, ENUM_LANE_HEIGHT } from '../constants'
+import { NUMBER_LANE_HEIGHT, ENUM_LANE_HEIGHT, EDIT_SIDEBAR_WIDTH } from '../constants'
 
 const props = defineProps<{
   core: Core
@@ -315,6 +314,8 @@ function onAction(action: EditorAction) {
         value: action.value,
       })
       props.core.evaluateAtCurrentTime()
+      // Update precision button position during drag
+      setTimeout(updatePrecisionBtnPosition, 0)
       break
 
     case 'NUMBER/DRAG_END': {
@@ -354,6 +355,8 @@ function onAction(action: EditorAction) {
         time: action.time,
       })
       props.core.evaluateAtCurrentTime()
+      // Update precision button position during drag
+      setTimeout(updatePrecisionBtnPosition, 0)
       break
 
     case 'ENUM/DRAG_END': {
@@ -390,6 +393,8 @@ function onAction(action: EditorAction) {
 
     case 'FUNC/DRAG_PREVIEW':
       // Func tracks don't update callbacks during drag (per plan)
+      // But we still update the precision button position
+      setTimeout(updatePrecisionBtnPosition, 0)
       break
 
     case 'FUNC/DRAG_END': {
@@ -482,22 +487,30 @@ const precisionBtnStyle = computed(() => {
 
 <template>
   <div class="edit-mode-view">
-    <EditSidebar
-      :tracks="allTracks"
-      :edit-enabled-track-ids="editEnabledTrackIds"
-      :front-track-id-by-type="frontTrackIdByType"
-      @action="onAction"
-    />
+    <div class="sidebar-column">
+      <!-- Header cell matching view mode search area -->
+      <div class="sidebar-header">
+        <button class="header-btn" @click="onAction({ type: 'EDIT/UNDO' })" title="Undo">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/>
+          </svg>
+        </button>
+        <button class="header-btn" @click="onAction({ type: 'EDIT/REDO' })" title="Redo">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"/>
+          </svg>
+        </button>
+      </div>
+      <!-- Track list sidebar -->
+      <EditSidebar
+        :tracks="allTracks"
+        :edit-enabled-track-ids="editEnabledTrackIds"
+        :front-track-id-by-type="frontTrackIdByType"
+        @action="onAction"
+      />
+    </div>
 
     <div class="lanes-area">
-      <!-- Time ticks header -->
-      <div class="ticks-header">
-        <TimeTicksHeader
-          :window-start="windowStart"
-          :window-end="windowEnd"
-        />
-      </div>
-
       <!-- Lanes container -->
       <div class="lanes-container" ref="lanesContainerRef">
         <NumberLane
@@ -591,17 +604,52 @@ const precisionBtnStyle = computed(() => {
   overflow: hidden;
 }
 
+.sidebar-column {
+  width: v-bind('EDIT_SIDEBAR_WIDTH + "px"');
+  min-width: v-bind('EDIT_SIDEBAR_WIDTH + "px"');
+  display: flex;
+  flex-direction: column;
+  background: #141618;
+  border-right: 1px solid #2a2d30;
+}
+
+.sidebar-header {
+  height: 24px;
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 8px;
+  border-bottom: 1px solid #2a2d30;
+  background: #141618;
+}
+
+.header-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1e2024;
+  border: 1px solid #2a2d30;
+  border-radius: 4px;
+  color: #888;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.header-btn:hover {
+  background: #282c32;
+  color: #c8c8c8;
+}
+
 .lanes-area {
   flex: 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-}
-
-.ticks-header {
-  display: flex;
-  border-bottom: 1px solid #2a2d30;
-  background: #141618;
 }
 
 .lanes-container {

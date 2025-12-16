@@ -2,7 +2,6 @@
 import { computed } from 'vue'
 import type { TrackRuntime, TrackType, EditorAction } from '../types'
 import {
-  EDIT_SIDEBAR_WIDTH,
   EDIT_SIDEBAR_BG_COLOR,
   EDIT_SIDEBAR_TRACK_BG,
   EDIT_SIDEBAR_TRACK_BG_HOVER,
@@ -63,14 +62,6 @@ function onHighChange(track: TrackRuntime, e: Event) {
   }
 }
 
-function undo() {
-  emit('action', { type: 'EDIT/UNDO' })
-}
-
-function redo() {
-  emit('action', { type: 'EDIT/REDO' })
-}
-
 const noTracksEnabled = computed(() =>
   props.editEnabledTrackIds.size === 0
 )
@@ -78,12 +69,6 @@ const noTracksEnabled = computed(() =>
 
 <template>
   <div class="edit-sidebar">
-    <!-- Undo/Redo buttons -->
-    <div class="undo-redo-row">
-      <button class="undo-btn" @click="undo">Undo</button>
-      <button class="redo-btn" @click="redo">Redo</button>
-    </div>
-
     <!-- Number tracks section -->
     <div class="track-section" v-if="enabledNumberTracks.length > 0">
       <div class="section-header">Number Tracks</div>
@@ -171,40 +156,11 @@ const noTracksEnabled = computed(() =>
 
 <style scoped>
 .edit-sidebar {
-  width: v-bind('EDIT_SIDEBAR_WIDTH + "px"');
-  min-width: v-bind('EDIT_SIDEBAR_WIDTH + "px"');
+  flex: 1;
   background: v-bind('EDIT_SIDEBAR_BG_COLOR');
-  border-right: 1px solid #2a2d30;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-}
-
-.undo-redo-row {
-  display: flex;
-  gap: 8px;
-  padding: 10px 12px;
-  border-bottom: 1px solid #2a2d30;
-  flex-shrink: 0;
-}
-
-.undo-btn,
-.redo-btn {
-  flex: 1;
-  padding: 6px 12px;
-  background: #1e2024;
-  border: 1px solid #2a2d30;
-  border-radius: 4px;
-  color: #b0b0b0;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.undo-btn:hover,
-.redo-btn:hover {
-  background: #282c32;
-  color: #e0e0e0;
 }
 
 .track-section {

@@ -5,7 +5,6 @@ import { Core } from '../core'
 import { RenderScheduler } from '../renderScheduler'
 import { NAME_COLUMN_WIDTH, EDIT_SIDEBAR_WIDTH } from '../constants'
 import TimeRibbon from './TimeRibbon.vue'
-import TimeTicksHeader from './TimeTicksHeader.vue'
 import TrackList from './TrackList.vue'
 import Playhead from './Playhead.vue'
 import EditModeView from './EditModeView.vue'
@@ -174,26 +173,19 @@ defineExpose({
 
     <!-- View Mode -->
     <template v-if="mode === 'view'">
-      <!-- Header row with search and time ticks -->
-      <div class="header-row">
-        <div class="name-column-header">
-          <input
-            v-model="searchFilter"
-            type="text"
-            placeholder="Search tracks..."
-            class="search-input"
-          />
-        </div>
-        <div class="ticks-area">
-          <TimeTicksHeader
-            :window-start="windowStart"
-            :window-end="windowEnd"
-          />
-        </div>
-      </div>
-
       <!-- Track list with playhead overlay -->
       <div class="track-list-container" ref="trackListRef">
+        <!-- Search row aligned with track names -->
+        <div class="search-row">
+          <div class="name-column-header">
+            <input
+              v-model="searchFilter"
+              type="text"
+              placeholder="Search tracks..."
+              class="search-input"
+            />
+          </div>
+        </div>
         <TrackList :track-ids="filteredTrackIds" />
         <Playhead
           :current-time="currentTime"
@@ -264,17 +256,21 @@ defineExpose({
   font-weight: 500;
 }
 
-.header-row {
+.search-row {
   display: flex;
-  border-bottom: 1px solid #2a2d30;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: #141618;
 }
 
 .name-column-header {
   width: v-bind('NAME_COLUMN_WIDTH + "px"');
   min-width: v-bind('NAME_COLUMN_WIDTH + "px"');
-  padding: 4px 8px;
+  padding: 6px 8px;
   box-sizing: border-box;
   background: #141618;
+  border-bottom: 1px solid #2a2d30;
 }
 
 .search-input {
@@ -295,11 +291,6 @@ defineExpose({
 
 .search-input::placeholder {
   color: #555;
-}
-
-.ticks-area {
-  flex: 1;
-  background: #141618;
 }
 
 .track-list-container {

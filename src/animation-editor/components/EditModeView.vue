@@ -86,6 +86,17 @@ const precisionEnumOptions = computed(() => {
   return props.core.getEnumOptions(precision.value.trackId)
 })
 
+function setExclusiveSelection(fieldType: TrackType, trackId: string, elementId: string) {
+  // The editor design calls for a single selected element at a time.
+  // Keeping one selection per lane causes the precision button to "stick" to earlier lanes
+  // (number > enum > func), often scrolling out of view.
+  selectedElementByType.value = {
+    number: fieldType === 'number' ? { trackId, elementId } : undefined,
+    enum: fieldType === 'enum' ? { trackId, elementId } : undefined,
+    func: fieldType === 'func' ? { trackId, elementId } : undefined,
+  }
+}
+
 // Initialize with initial enabled track IDs if provided, otherwise enable all
 onMounted(() => {
   if (props.initialEnabledTrackIds && props.initialEnabledTrackIds.size > 0) {
@@ -226,10 +237,7 @@ function onAction(action: EditorAction) {
 
     // Selection
     case 'ELEMENT/SELECT':
-      selectedElementByType.value[action.fieldType] = {
-        trackId: action.trackId,
-        elementId: action.elementId,
-      }
+      setExclusiveSelection(action.fieldType, action.trackId, action.elementId)
       setTimeout(updatePrecisionBtnPosition, 10)
       break
 
@@ -285,7 +293,7 @@ function onAction(action: EditorAction) {
       props.core.pushSnapshot()
       const elementId = props.core.addNumberElement(action.trackId, action.time, action.value)
       if (elementId) {
-        selectedElementByType.value.number = { trackId: action.trackId, elementId }
+        setExclusiveSelection('number', action.trackId, elementId)
       }
       incrementRenderVersion()
       break
@@ -331,7 +339,7 @@ function onAction(action: EditorAction) {
       props.core.pushSnapshot()
       const elementId = props.core.addEnumElement(action.trackId, action.time)
       if (elementId) {
-        selectedElementByType.value.enum = { trackId: action.trackId, elementId }
+        setExclusiveSelection('enum', action.trackId, elementId)
       }
       incrementRenderVersion()
       break
@@ -375,7 +383,7 @@ function onAction(action: EditorAction) {
       props.core.pushSnapshot()
       const elementId = props.core.addFuncElement(action.trackId, action.time)
       if (elementId) {
-        selectedElementByType.value.func = { trackId: action.trackId, elementId }
+        setExclusiveSelection('func', action.trackId, elementId)
       }
       incrementRenderVersion()
       break

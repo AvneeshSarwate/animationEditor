@@ -3,7 +3,7 @@ import { ref, provide, onMounted, computed } from 'vue'
 import type { TrackDef, EditorMode } from '../types'
 import { Core } from '../core'
 import { RenderScheduler } from '../renderScheduler'
-import { NAME_COLUMN_WIDTH, EDIT_SIDEBAR_WIDTH, LANE_LABEL_WIDTH } from '../constants'
+import { NAME_COLUMN_WIDTH, EDIT_SIDEBAR_WIDTH } from '../constants'
 import TimeRibbon from './TimeRibbon.vue'
 import TimeTicksHeader from './TimeTicksHeader.vue'
 import TrackList from './TrackList.vue'
@@ -29,6 +29,9 @@ const mode = ref<EditorMode>('view')
 const currentTime = ref(0)
 const trackIds = ref<string[]>([])
 
+// Track selection for edit mode (checkboxes in view mode)
+const selectedTrackIdsForEdit = ref<Set<string>>(new Set())
+
 // View window state
 const windowStart = ref(0)
 const windowEnd = ref(core.duration)
@@ -46,6 +49,20 @@ provide('scheduler', scheduler)
 provide('windowStart', windowStart)
 provide('windowEnd', windowEnd)
 provide('searchFilter', searchFilter)
+provide('selectedTrackIdsForEdit', selectedTrackIdsForEdit)
+
+// Toggle track selection for edit mode
+function toggleTrackSelection(trackId: string) {
+  if (selectedTrackIdsForEdit.value.has(trackId)) {
+    selectedTrackIdsForEdit.value.delete(trackId)
+  } else {
+    selectedTrackIdsForEdit.value.add(trackId)
+  }
+  // Trigger reactivity
+  selectedTrackIdsForEdit.value = new Set(selectedTrackIdsForEdit.value)
+}
+
+provide('toggleTrackSelection', toggleTrackSelection)
 
 // Computed: filtered track IDs (uses reactive trackIds)
 const filteredTrackIds = computed(() => {
@@ -62,7 +79,7 @@ const filteredTrackIds = computed(() => {
 const ribbonSpacerWidth = computed(() => {
   return mode.value === 'view'
     ? NAME_COLUMN_WIDTH
-    : EDIT_SIDEBAR_WIDTH + LANE_LABEL_WIDTH
+    : EDIT_SIDEBAR_WIDTH
 })
 
 // Update canvas area width on resize
@@ -195,6 +212,7 @@ defineExpose({
       :window-start="windowStart"
       :window-end="windowEnd"
       :current-time="currentTime"
+      :initial-enabled-track-ids="selectedTrackIdsForEdit"
     />
 
     <!-- Toast notifications -->
@@ -206,9 +224,9 @@ defineExpose({
 .animation-editor {
   display: flex;
   flex-direction: column;
-  background: #0d0d1a;
-  color: #e0e0e0;
-  font-family: system-ui, -apple-system, sans-serif;
+  background: #121416;
+  color: #c8c8c8;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   height: 100%;
   overflow: hidden;
 }
@@ -218,34 +236,37 @@ defineExpose({
   align-items: center;
   gap: 16px;
   padding: 8px 16px;
-  background: #0a0a1a;
-  border-bottom: 1px solid #333;
+  background: #0e1012;
+  border-bottom: 1px solid #2a2d30;
 }
 
 .mode-toggle {
-  padding: 6px 12px;
-  background: #7b2cbf;
+  padding: 6px 14px;
+  background: #3a7ca5;
   border: none;
   border-radius: 4px;
   color: #fff;
   font-size: 12px;
+  font-weight: 500;
   cursor: pointer;
+  transition: background 0.15s ease;
 }
 
 .mode-toggle:hover {
-  background: #9d4edd;
+  background: #4a8cb5;
 }
 
 .mode-label {
-  font-size: 12px;
-  color: #888;
+  font-size: 11px;
+  color: #666;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 1px;
+  font-weight: 500;
 }
 
 .header-row {
   display: flex;
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid #2a2d30;
 }
 
 .name-column-header {
@@ -253,26 +274,32 @@ defineExpose({
   min-width: v-bind('NAME_COLUMN_WIDTH + "px"');
   padding: 4px 8px;
   box-sizing: border-box;
-  background: #0f0f23;
+  background: #141618;
 }
 
 .search-input {
   width: 100%;
-  padding: 4px 8px;
-  background: #1a1a2e;
-  border: 1px solid #333;
+  padding: 6px 10px;
+  background: #1a1c20;
+  border: 1px solid #2a2d30;
   border-radius: 4px;
-  color: #e0e0e0;
+  color: #c8c8c8;
   font-size: 12px;
+  transition: border-color 0.15s ease;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #3a7ca5;
 }
 
 .search-input::placeholder {
-  color: #666;
+  color: #555;
 }
 
 .ticks-area {
   flex: 1;
-  background: #0f0f23;
+  background: #141618;
 }
 
 .track-list-container {

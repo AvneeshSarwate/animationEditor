@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import type { Core } from '../core'
 import type {
   TrackRuntime,
@@ -20,18 +20,19 @@ import FuncLane from './FuncLane.vue'
 import PrecisionEditor from './PrecisionEditor.vue'
 import TimeTicksHeader from './TimeTicksHeader.vue'
 import Playhead from './Playhead.vue'
-import { LANE_LABEL_WIDTH } from '../constants'
+import { NUMBER_LANE_HEIGHT, ENUM_LANE_HEIGHT } from '../constants'
 
 const props = defineProps<{
   core: Core
   windowStart: number
   windowEnd: number
   currentTime: number
+  initialEnabledTrackIds?: Set<string>
 }>()
 
 const { warning } = useToast()
 
-// Edit state
+// Edit state - initialize from prop if provided
 const editEnabledTrackIds = ref<Set<string>>(new Set())
 const frontTrackIdByType = ref<{ number?: string; enum?: string; func?: string }>({})
 const selectedElementByType = ref<{
@@ -52,6 +53,9 @@ const funcLaneRef = ref<InstanceType<typeof FuncLane> | null>(null)
 // Lanes container for playhead width calculation
 const lanesContainerRef = ref<HTMLElement | null>(null)
 const lanesWidth = ref(0)
+
+// Precision button positions
+const precisionBtnPosition = ref<{ x: number; y: number; type: TrackType } | null>(null)
 
 // Computed tracks by type
 const allTracks = computed(() => props.core.getOrderedTracks())
@@ -83,16 +87,23 @@ const precisionEnumOptions = computed(() => {
   return props.core.getEnumOptions(precision.value.trackId)
 })
 
-// Enable all tracks by default when entering edit mode
-watch(allTracks, (tracks) => {
-  for (const track of tracks) {
-    editEnabledTrackIds.value.add(track.id)
-    // Set first track of each type as front by default
-    if (!frontTrackIdByType.value[track.def.fieldType]) {
+// Initialize with initial enabled track IDs if provided, otherwise enable all
+onMounted(() => {
+  if (props.initialEnabledTrackIds && props.initialEnabledTrackIds.size > 0) {
+    editEnabledTrackIds.value = new Set(props.initialEnabledTrackIds)
+  } else {
+    // Enable all tracks by default
+    for (const track of allTracks.value) {
+      editEnabledTrackIds.value.add(track.id)
+    }
+  }
+  // Set first track of each type as front
+  for (const track of allTracks.value) {
+    if (editEnabledTrackIds.value.has(track.id) && !frontTrackIdByType.value[track.def.fieldType]) {
       frontTrackIdByType.value[track.def.fieldType] = track.id
     }
   }
-}, { immediate: true })
+})
 
 // Update lanes width on resize
 watch(lanesContainerRef, (el) => {
@@ -111,8 +122,49 @@ watch(
   () => incrementRenderVersion()
 )
 
+// Watch for selection changes to update precision button position
+watch(
+  () => [selectedElementByType.value.number, selectedElementByType.value.enum, selectedElementByType.value.func],
+  () => updatePrecisionBtnPosition(),
+  { deep: true }
+)
+
+function updatePrecisionBtnPosition() {
+  // Check each type and get position from appropriate lane
+  if (selectedElementByType.value.number && numberLaneRef.value) {
+    const pos = numberLaneRef.value.getSelectedElementPosition()
+    if (pos) {
+      precisionBtnPosition.value = { x: pos.x, y: pos.y, type: 'number' }
+      return
+    }
+  }
+
+  if (selectedElementByType.value.enum && enumLaneRef.value) {
+    const pos = enumLaneRef.value.getSelectedElementPosition()
+    if (pos) {
+      const yOffset = numberTracks.value.length > 0 ? NUMBER_LANE_HEIGHT : 0
+      precisionBtnPosition.value = { x: pos.x, y: pos.y + yOffset, type: 'enum' }
+      return
+    }
+  }
+
+  if (selectedElementByType.value.func && funcLaneRef.value) {
+    const pos = funcLaneRef.value.getSelectedElementPosition()
+    if (pos) {
+      const yOffset = (numberTracks.value.length > 0 ? NUMBER_LANE_HEIGHT : 0) +
+                      (enumTracks.value.length > 0 ? ENUM_LANE_HEIGHT : 0)
+      precisionBtnPosition.value = { x: pos.x, y: pos.y + yOffset, type: 'func' }
+      return
+    }
+  }
+
+  precisionBtnPosition.value = null
+}
+
 function incrementRenderVersion() {
   renderVersion.value++
+  // Update button position after render
+  setTimeout(updatePrecisionBtnPosition, 50)
 }
 
 function onAction(action: EditorAction) {
@@ -179,6 +231,7 @@ function onAction(action: EditorAction) {
         trackId: action.trackId,
         elementId: action.elementId,
       }
+      setTimeout(updatePrecisionBtnPosition, 10)
       break
 
     case 'ELEMENT/DESELECT':
@@ -405,11 +458,26 @@ function savePrecisionEdit() {
   incrementRenderVersion()
 }
 
-function openPrecisionForSelected(fieldType: TrackType) {
-  const sel = selectedElementByType.value[fieldType]
+function openPrecisionForSelected() {
+  if (!precisionBtnPosition.value) return
+  const type = precisionBtnPosition.value.type
+  const sel = selectedElementByType.value[type]
   if (!sel) return
-  onAction({ type: 'PRECISION/OPEN', fieldType, trackId: sel.trackId, elementId: sel.elementId })
+  onAction({ type: 'PRECISION/OPEN', fieldType: type, trackId: sel.trackId, elementId: sel.elementId })
 }
+
+// Compute precision button style based on position
+const precisionBtnStyle = computed(() => {
+  if (!precisionBtnPosition.value) return {}
+  const { x, y } = precisionBtnPosition.value
+  // Position button to the right of the element, clamped to container bounds
+  const btnX = Math.min(Math.max(x + 16, 30), lanesWidth.value - 50)
+  const btnY = Math.max(y - 12, 4)
+  return {
+    left: `${btnX}px`,
+    top: `${btnY}px`,
+  }
+})
 </script>
 
 <template>
@@ -424,7 +492,6 @@ function openPrecisionForSelected(fieldType: TrackType) {
     <div class="lanes-area">
       <!-- Time ticks header -->
       <div class="ticks-header">
-        <div class="lane-label-spacer"></div>
         <TimeTicksHeader
           :window-start="windowStart"
           :window-end="windowEnd"
@@ -473,7 +540,7 @@ function openPrecisionForSelected(fieldType: TrackType) {
         />
 
         <div v-if="numberTracks.length === 0 && enumTracks.length === 0 && funcTracks.length === 0" class="empty-lanes">
-          Enable tracks in the sidebar to edit
+          Select tracks in view mode to edit
         </div>
 
         <!-- Playhead overlay -->
@@ -481,31 +548,22 @@ function openPrecisionForSelected(fieldType: TrackType) {
           :current-time="currentTime"
           :window-start="windowStart"
           :window-end="windowEnd"
-          :canvas-width="lanesWidth - LANE_LABEL_WIDTH"
-          :left-offset="LANE_LABEL_WIDTH"
+          :canvas-width="lanesWidth"
+          :left-offset="0"
         />
 
-        <!-- Precision edit buttons -->
+        <!-- Precision edit button - positioned near selected element -->
         <button
-          v-if="selectedElementByType.number"
+          v-if="precisionBtnPosition"
           class="precision-btn"
-          @click="openPrecisionForSelected('number')"
+          :style="precisionBtnStyle"
+          @click="openPrecisionForSelected"
+          title="Edit element"
         >
-          +
-        </button>
-        <button
-          v-if="selectedElementByType.enum"
-          class="precision-btn precision-btn-enum"
-          @click="openPrecisionForSelected('enum')"
-        >
-          +
-        </button>
-        <button
-          v-if="selectedElementByType.func"
-          class="precision-btn precision-btn-func"
-          @click="openPrecisionForSelected('func')"
-        >
-          +
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
         </button>
       </div>
     </div>
@@ -529,7 +587,7 @@ function openPrecisionForSelected(fieldType: TrackType) {
 .edit-mode-view {
   display: flex;
   flex: 1;
-  background: #0d0d1a;
+  background: #121416;
   overflow: hidden;
 }
 
@@ -542,14 +600,8 @@ function openPrecisionForSelected(fieldType: TrackType) {
 
 .ticks-header {
   display: flex;
-  border-bottom: 1px solid #333;
-}
-
-.lane-label-spacer {
-  width: v-bind('LANE_LABEL_WIDTH + "px"');
-  min-width: v-bind('LANE_LABEL_WIDTH + "px"');
-  background: #0a0a1a;
-  border-right: 1px solid #333;
+  border-bottom: 1px solid #2a2d30;
+  background: #141618;
 }
 
 .lanes-container {
@@ -563,36 +615,30 @@ function openPrecisionForSelected(fieldType: TrackType) {
   align-items: center;
   justify-content: center;
   height: 200px;
-  color: #666;
-  font-size: 14px;
+  color: #555;
+  font-size: 13px;
 }
 
 .precision-btn {
   position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   padding: 0;
-  background: #7b2cbf;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #3a7ca5;
   border: none;
-  border-radius: 50%;
+  border-radius: 4px;
   color: #fff;
-  font-size: 18px;
-  font-weight: bold;
   cursor: pointer;
   z-index: 100;
+  transition: background 0.15s ease, transform 0.1s ease;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
 
 .precision-btn:hover {
-  background: #9d4edd;
-}
-
-.precision-btn-enum {
-  top: calc(v-bind('numberTracks.length > 0 ? "200px" : "0"') + 10px);
-}
-
-.precision-btn-func {
-  top: calc(v-bind('(numberTracks.length > 0 ? 200 : 0) + (enumTracks.length > 0 ? 120 : 0)') + 10px);
+  background: #4a8cb5;
+  transform: scale(1.05);
 }
 </style>

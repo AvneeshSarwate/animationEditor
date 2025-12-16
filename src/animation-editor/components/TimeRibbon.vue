@@ -146,14 +146,14 @@ function onMouseUp() {
 .name-spacer {
   width: v-bind('spacerWidth + "px"');
   min-width: v-bind('spacerWidth + "px"');
-  background: #0f0f23;
+  background: #141618;
 }
 
 .ribbon {
   flex: 1;
   position: relative;
   background: v-bind('RIBBON_BG_COLOR');
-  border-bottom: 1px solid #444;
+  border-bottom: 1px solid #2a2d30;
 }
 
 .viewport {

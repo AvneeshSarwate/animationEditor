@@ -102,15 +102,20 @@ function handleBackdropClick(e: MouseEvent) {
     <div v-if="open" class="modal-backdrop" @click="handleBackdropClick">
       <div class="modal">
         <div class="modal-header">
-          <h3>Edit Element</h3>
-          <button class="close-btn" @click="close">×</button>
+          <div class="header-content">
+            <span class="header-title">Edit Element</span>
+            <span class="track-badge">{{ trackName }}</span>
+          </div>
+          <button class="close-btn" @click="close">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+          </button>
         </div>
 
         <div class="modal-body">
-          <div class="track-name">{{ trackName }}</div>
-
           <!-- Time (all types) -->
-          <div class="field">
+          <div class="field-row">
             <label>Time</label>
             <input
               type="number"
@@ -124,7 +129,7 @@ function handleBackdropClick(e: MouseEvent) {
 
           <!-- Number value -->
           <template v-if="fieldType === 'number'">
-            <div class="field">
+            <div class="field-row">
               <label>Value</label>
               <input
                 type="number"
@@ -138,12 +143,12 @@ function handleBackdropClick(e: MouseEvent) {
 
           <!-- Enum value -->
           <template v-if="fieldType === 'enum'">
-            <div class="field">
+            <div class="field-row">
               <label>Value</label>
               <select
                 :value="localDraft.enumValue"
                 @change="onEnumChange"
-                class="input"
+                class="input select"
               >
                 <option v-for="opt in enumOptions" :key="opt" :value="opt">
                   {{ opt }}
@@ -154,19 +159,25 @@ function handleBackdropClick(e: MouseEvent) {
 
           <!-- Func name and args -->
           <template v-if="fieldType === 'func'">
-            <div class="field">
-              <label>Function Name</label>
+            <div class="field-row">
+              <label>Function</label>
               <input
                 type="text"
                 :value="localDraft.funcName"
                 @input="onFuncNameChange"
                 class="input"
+                placeholder="functionName"
               />
             </div>
 
-            <div class="field">
-              <label>Arguments</label>
-              <div class="args-list">
+            <div class="args-section">
+              <div class="args-header">
+                <span class="args-label">Arguments</span>
+                <button v-if="funcArgs.length < 5" class="add-arg-btn" @click="addArg">
+                  + Add
+                </button>
+              </div>
+              <div class="args-list" v-if="funcArgs.length > 0">
                 <div v-for="(arg, index) in funcArgs" :key="index" class="arg-row">
                   <select
                     :value="arg.type"
@@ -174,7 +185,7 @@ function handleBackdropClick(e: MouseEvent) {
                     class="arg-type"
                   >
                     <option value="text">Text</option>
-                    <option value="number">Number</option>
+                    <option value="number">Num</option>
                   </select>
                   <input
                     type="text"
@@ -185,10 +196,8 @@ function handleBackdropClick(e: MouseEvent) {
                   />
                   <button class="remove-arg-btn" @click="removeArg(index)">×</button>
                 </div>
-                <button v-if="funcArgs.length < 5" class="add-arg-btn" @click="addArg">
-                  + Add Argument
-                </button>
               </div>
+              <div v-else class="no-args">No arguments</div>
             </div>
           </template>
         </div>
@@ -213,7 +222,7 @@ function handleBackdropClick(e: MouseEvent) {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -222,178 +231,240 @@ function handleBackdropClick(e: MouseEvent) {
 
 .modal {
   width: v-bind('PRECISION_MODAL_WIDTH + "px"');
-  background: #1a1a2e;
+  background: #1a1c20;
   border-radius: 8px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  border: 1px solid #2a2d30;
 }
 
 .modal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
-  border-bottom: 1px solid #333;
+  padding: 12px 16px;
+  border-bottom: 1px solid #2a2d30;
 }
 
-.modal-header h3 {
-  margin: 0;
-  font-size: 16px;
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.header-title {
+  font-size: 13px;
+  font-weight: 500;
   color: #e0e0e0;
+}
+
+.track-badge {
+  font-size: 11px;
+  color: #888;
+  background: #252830;
+  padding: 2px 8px;
+  border-radius: 3px;
 }
 
 .close-btn {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
   border: none;
-  color: #888;
-  font-size: 20px;
+  color: #666;
   cursor: pointer;
   border-radius: 4px;
+  transition: all 0.15s ease;
 }
 
 .close-btn:hover {
-  background: #333;
-  color: #fff;
+  background: #2a2d30;
+  color: #c8c8c8;
 }
 
 .modal-body {
-  padding: 20px;
+  padding: 12px 16px;
 }
 
-.track-name {
-  font-size: 12px;
+.field-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.field-row label {
+  flex-shrink: 0;
+  width: 60px;
+  font-size: 11px;
   color: #888;
-  margin-bottom: 16px;
-}
-
-.field {
-  margin-bottom: 16px;
-}
-
-.field label {
-  display: block;
-  font-size: 12px;
-  color: #888;
-  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .input {
-  width: 100%;
-  padding: 8px 12px;
-  background: #0f0f23;
-  border: 1px solid #333;
+  flex: 1;
+  padding: 6px 10px;
+  background: #141618;
+  border: 1px solid #2a2d30;
   border-radius: 4px;
-  color: #e0e0e0;
-  font-size: 14px;
+  color: #c8c8c8;
+  font-size: 13px;
+  transition: border-color 0.15s ease;
 }
 
 .input:focus {
   outline: none;
-  border-color: #7b2cbf;
+  border-color: #3a7ca5;
+}
+
+.input.select {
+  cursor: pointer;
+}
+
+.args-section {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #2a2d30;
+}
+
+.args-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.args-label {
+  font-size: 11px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.add-arg-btn {
+  padding: 4px 10px;
+  background: transparent;
+  border: 1px solid #2a2d30;
+  border-radius: 3px;
+  color: #888;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.add-arg-btn:hover {
+  background: #252830;
+  color: #c8c8c8;
+  border-color: #3a3d42;
 }
 
 .args-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .arg-row {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
 }
 
 .arg-type {
-  width: 90px;
-  padding: 6px 8px;
-  background: #0f0f23;
-  border: 1px solid #333;
-  border-radius: 4px;
-  color: #e0e0e0;
-  font-size: 12px;
+  width: 70px;
+  padding: 5px 6px;
+  background: #141618;
+  border: 1px solid #2a2d30;
+  border-radius: 3px;
+  color: #c8c8c8;
+  font-size: 11px;
+  cursor: pointer;
 }
 
 .arg-value {
   flex: 1;
-  padding: 6px 8px;
-  background: #0f0f23;
-  border: 1px solid #333;
-  border-radius: 4px;
-  color: #e0e0e0;
+  padding: 5px 8px;
+  background: #141618;
+  border: 1px solid #2a2d30;
+  border-radius: 3px;
+  color: #c8c8c8;
   font-size: 12px;
+}
+
+.arg-value:focus,
+.arg-type:focus {
+  outline: none;
+  border-color: #3a7ca5;
 }
 
 .remove-arg-btn {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   padding: 0;
   background: transparent;
   border: none;
-  color: #666;
-  font-size: 16px;
+  color: #555;
+  font-size: 14px;
   cursor: pointer;
   border-radius: 3px;
+  transition: all 0.15s ease;
 }
 
 .remove-arg-btn:hover {
-  background: #ef4444;
+  background: #dc2626;
   color: #fff;
 }
 
-.add-arg-btn {
-  padding: 6px 12px;
-  background: #2a2a4a;
-  border: 1px dashed #444;
-  border-radius: 4px;
-  color: #888;
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.add-arg-btn:hover {
-  background: #3a3a5a;
-  color: #e0e0e0;
+.no-args {
+  font-size: 11px;
+  color: #555;
+  text-align: center;
+  padding: 8px;
 }
 
 .modal-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
-  padding: 16px 20px;
-  border-top: 1px solid #333;
+  gap: 8px;
+  padding: 10px 16px;
+  border-top: 1px solid #2a2d30;
 }
 
 .btn {
-  padding: 8px 16px;
+  padding: 6px 14px;
   border-radius: 4px;
-  font-size: 13px;
+  font-size: 12px;
+  font-weight: 500;
   cursor: pointer;
   border: none;
+  transition: all 0.15s ease;
 }
 
 .btn-secondary {
-  background: #333;
-  color: #e0e0e0;
+  background: #252830;
+  color: #b0b0b0;
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: #444;
+  background: #2d3038;
+  color: #e0e0e0;
 }
 
 .btn-secondary:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
 .btn-primary {
-  background: #7b2cbf;
+  background: #3a7ca5;
   color: #fff;
 }
 
 .btn-primary:hover {
-  background: #9d4edd;
+  background: #4a8cb5;
 }
 </style>

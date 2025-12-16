@@ -261,7 +261,6 @@ defineExpose({
 
 <template>
   <div class="func-lane">
-    <div class="lane-label">Func</div>
     <div ref="containerRef" class="lane-canvas"></div>
   </div>
 </template>
@@ -270,21 +269,8 @@ defineExpose({
 .func-lane {
   height: v-bind('FUNC_LANE_HEIGHT + "px"');
   background: v-bind('EDIT_LANE_BG_COLOR');
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid #2a2d30;
   display: flex;
-}
-
-.lane-label {
-  width: 60px;
-  min-width: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  color: #888;
-  text-transform: uppercase;
-  background: #0a0a1a;
-  border-right: 1px solid #333;
 }
 
 .lane-canvas {

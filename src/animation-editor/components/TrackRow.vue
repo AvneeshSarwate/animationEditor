@@ -18,13 +18,27 @@ const props = defineProps<{
 const core = inject<Core>('core')!
 const windowStart = inject<Ref<number>>('windowStart')!
 const windowEnd = inject<Ref<number>>('windowEnd')!
+const selectedTrackIdsForEdit = inject<Ref<Set<string>>>('selectedTrackIdsForEdit')!
+const toggleTrackSelection = inject<(trackId: string) => void>('toggleTrackSelection')!
 
 const track = computed(() => core.getTrackById(props.trackId))
+const isSelected = computed(() => selectedTrackIdsForEdit.value.has(props.trackId))
+
+function onCheckboxChange() {
+  toggleTrackSelection(props.trackId)
+}
 </script>
 
 <template>
   <div class="track-row" v-if="track">
     <div class="name-cell">
+      <input
+        type="checkbox"
+        :checked="isSelected"
+        @change="onCheckboxChange"
+        class="track-checkbox"
+        title="Select for editing"
+      />
       <span class="track-name">{{ track.def.name }}</span>
     </div>
     <div class="canvas-cell">
@@ -41,7 +55,7 @@ const track = computed(() => core.getTrackById(props.trackId))
 .track-row {
   display: flex;
   height: v-bind('TRACK_ROW_HEIGHT + "px"');
-  border-bottom: 1px solid #2a2a3a;
+  border-bottom: 1px solid #2a2d30;
 }
 
 .name-cell {
@@ -51,7 +65,16 @@ const track = computed(() => core.getTrackById(props.trackId))
   padding: 0 8px;
   display: flex;
   align-items: center;
+  gap: 8px;
   overflow: hidden;
+}
+
+.track-checkbox {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  accent-color: #3a7ca5;
+  cursor: pointer;
 }
 
 .track-name {

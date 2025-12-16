@@ -73,8 +73,8 @@ const ticks = computed(() => {
 .time-ticks-header {
   position: relative;
   height: v-bind('TIME_TICKS_HEIGHT + "px"');
-  background: #0f0f23;
-  border-bottom: 1px solid #333;
+  background: #141618;
+  border-bottom: 1px solid #2a2d30;
 }
 
 .tick {

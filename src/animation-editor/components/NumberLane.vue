@@ -40,6 +40,9 @@ let resizeObserver: ResizeObserver | null = null
 // Map of element ID to Konva node (for front track only)
 const elementNodes = new Map<string, Konva.Circle>()
 
+// Reference to the front track line for live updates during drag
+let frontTrackLine: Konva.Line | null = null
+
 // Drag state
 let dragElementIndex: number | null = null
 let dragTrack: TrackRuntime | null = null
@@ -79,6 +82,7 @@ function rebuildScene() {
 
   layer.destroyChildren()
   elementNodes.clear()
+  frontTrackLine = null
 
   const w = width.value
   if (w <= 0) return
@@ -129,6 +133,11 @@ function drawTrackLine(track: TrackRuntime, isFront: boolean) {
   })
 
   layer!.add(line)
+
+  // Store reference to front track line for live updates
+  if (isFront) {
+    frontTrackLine = line
+  }
 
   // Draw bounds lines for front track
   if (isFront) {
@@ -216,13 +225,12 @@ function drawFrontTrackPoints(track: TrackRuntime) {
       v = clamp(v, dragTrack.low, dragTrack.high)
 
       // Snap circle back to clamped position
-      circle.position({
-        x: timeToXLocal(t),
-        y: valueToY(v, dragTrack.low, dragTrack.high),
-      })
+      const newX = timeToXLocal(t)
+      const newY = valueToY(v, dragTrack.low, dragTrack.high)
+      circle.position({ x: newX, y: newY })
 
-      // Update the line visually (find and update)
-      updateLinePreview(dragTrack, dragElementIndex, t, v)
+      // Update the line visually in real-time
+      updateLinePreview(dragTrack, dragElementIndex, newX, newY)
 
       // Emit preview for live callbacks
       emit('action', {
@@ -266,10 +274,42 @@ function drawFrontTrackPoints(track: TrackRuntime) {
   }
 }
 
-function updateLinePreview(track: TrackRuntime, dragIndex: number, newTime: number, newValue: number) {
-  // Find the line for this track and update its points
-  // For simplicity, just rebuild - a real optimization would update the line in place
-  // This is called frequently during drag, so keeping it simple
+function updateLinePreview(track: TrackRuntime, dragIndex: number, newX: number, newY: number) {
+  if (!frontTrackLine || !layer) return
+
+  // Get all circle positions from the layer to build updated line points
+  const elements = track.elementData as NumberElement[]
+  const points: number[] = []
+
+  // Start from left edge
+  const startValue = evaluateAtTimeWithOverride(track, props.windowStart, dragIndex, newX, newY)
+  points.push(0, valueToY(startValue, track.low, track.high))
+
+  // Add points, using the dragged position for the drag index
+  for (let i = 0; i < elements.length; i++) {
+    const elem = elements[i]
+
+    // Use the dragged position for the element being dragged
+    if (i === dragIndex) {
+      // Only add if within view window
+      const dragTime = xToTimeLocal(newX)
+      if (dragTime >= props.windowStart && dragTime <= props.windowEnd) {
+        points.push(newX, newY)
+      }
+    } else {
+      if (elem.time < props.windowStart) continue
+      if (elem.time > props.windowEnd) break
+      points.push(timeToXLocal(elem.time), valueToY(elem.value, track.low, track.high))
+    }
+  }
+
+  // End at right edge
+  const endValue = evaluateAtTimeWithOverride(track, props.windowEnd, dragIndex, newX, newY)
+  points.push(width.value, valueToY(endValue, track.low, track.high))
+
+  // Update line points
+  frontTrackLine.points(points)
+  layer.batchDraw()
 }
 
 function evaluateAtTime(track: TrackRuntime, t: number): number {
@@ -296,6 +336,49 @@ function evaluateAtTime(track: TrackRuntime, t: number): number {
   const t2 = elements[i2].time
   const v1 = elements[i1].value
   const v2 = elements[i2].value
+  const alpha = (t - t1) / (t2 - t1)
+  return v1 + (v2 - v1) * alpha
+}
+
+function evaluateAtTimeWithOverride(track: TrackRuntime, t: number, overrideIndex: number, overrideX: number, overrideY: number): number {
+  const elements = track.elementData as NumberElement[]
+  if (elements.length === 0) return track.low
+
+  // Create virtual element list with override
+  const overrideTime = xToTimeLocal(overrideX)
+  const overrideValue = yToValue(overrideY, track.low, track.high)
+
+  // Build sorted list of (time, value) pairs with override
+  const pairs: { time: number; value: number }[] = []
+  for (let i = 0; i < elements.length; i++) {
+    if (i === overrideIndex) {
+      pairs.push({ time: overrideTime, value: overrideValue })
+    } else {
+      pairs.push({ time: elements[i].time, value: elements[i].value })
+    }
+  }
+  pairs.sort((a, b) => a.time - b.time)
+
+  // Find surrounding elements
+  let i1 = -1
+  let i2 = 0
+  for (let i = 0; i < pairs.length; i++) {
+    if (pairs[i].time <= t) {
+      i1 = i
+    } else {
+      i2 = i
+      break
+    }
+    i2 = i + 1
+  }
+
+  if (i1 < 0) return pairs[0].value
+  if (i2 >= pairs.length) return pairs[i1].value
+
+  const t1 = pairs[i1].time
+  const t2 = pairs[i2].time
+  const v1 = pairs[i1].value
+  const v2 = pairs[i2].value
   const alpha = (t - t1) / (t2 - t1)
   return v1 + (v2 - v1) * alpha
 }
@@ -380,7 +463,6 @@ defineExpose({
 
 <template>
   <div class="number-lane">
-    <div class="lane-label">Number</div>
     <div ref="containerRef" class="lane-canvas"></div>
   </div>
 </template>
@@ -389,21 +471,8 @@ defineExpose({
 .number-lane {
   height: v-bind('NUMBER_LANE_HEIGHT + "px"');
   background: v-bind('EDIT_LANE_BG_COLOR');
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid #2a2d30;
   display: flex;
-}
-
-.lane-label {
-  width: 60px;
-  min-width: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  color: #888;
-  text-transform: uppercase;
-  background: #0a0a1a;
-  border-right: 1px solid #333;
 }
 
 .lane-canvas {

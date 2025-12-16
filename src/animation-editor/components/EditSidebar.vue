@@ -7,6 +7,7 @@ import {
   EDIT_SIDEBAR_TRACK_BG,
   EDIT_SIDEBAR_TRACK_BG_HOVER,
   EDIT_SIDEBAR_TRACK_BG_ENABLED,
+  EDIT_SIDEBAR_SECTION_MAX_HEIGHT,
 } from '../constants'
 
 const props = defineProps<{
@@ -19,22 +20,19 @@ const emit = defineEmits<{
   action: [action: EditorAction]
 }>()
 
-// Group tracks by type
-const numberTracks = computed(() => props.tracks.filter(t => t.def.fieldType === 'number'))
-const enumTracks = computed(() => props.tracks.filter(t => t.def.fieldType === 'enum'))
-const funcTracks = computed(() => props.tracks.filter(t => t.def.fieldType === 'func'))
-
-function isEnabled(trackId: string): boolean {
-  return props.editEnabledTrackIds.has(trackId)
-}
+// Filter to only show enabled tracks, grouped by type
+const enabledNumberTracks = computed(() =>
+  props.tracks.filter(t => t.def.fieldType === 'number' && props.editEnabledTrackIds.has(t.id))
+)
+const enabledEnumTracks = computed(() =>
+  props.tracks.filter(t => t.def.fieldType === 'enum' && props.editEnabledTrackIds.has(t.id))
+)
+const enabledFuncTracks = computed(() =>
+  props.tracks.filter(t => t.def.fieldType === 'func' && props.editEnabledTrackIds.has(t.id))
+)
 
 function isFront(track: TrackRuntime): boolean {
   return props.frontTrackIdByType[track.def.fieldType] === track.id
-}
-
-function toggleEnabled(trackId: string) {
-  const enabled = !isEnabled(trackId)
-  emit('action', { type: 'TRACK/TOGGLE_EDIT_ENABLED', trackId, enabled })
 }
 
 function setFront(track: TrackRuntime) {
@@ -72,6 +70,10 @@ function undo() {
 function redo() {
   emit('action', { type: 'EDIT/REDO' })
 }
+
+const noTracksEnabled = computed(() =>
+  props.editEnabledTrackIds.size === 0
+)
 </script>
 
 <template>
@@ -83,110 +85,86 @@ function redo() {
     </div>
 
     <!-- Number tracks section -->
-    <div class="track-section" v-if="numberTracks.length > 0">
+    <div class="track-section" v-if="enabledNumberTracks.length > 0">
       <div class="section-header">Number Tracks</div>
-      <div
-        v-for="track in numberTracks"
-        :key="track.id"
-        class="track-item"
-        :class="{
-          'track-enabled': isEnabled(track.id),
-          'track-front': isFront(track),
-        }"
-        @click="setFront(track)"
-      >
-        <div class="track-row">
-          <input
-            type="checkbox"
-            :checked="isEnabled(track.id)"
-            @click.stop
-            @change="toggleEnabled(track.id)"
-            class="track-checkbox"
-          />
-          <span class="track-name">{{ track.def.name }}</span>
-          <button class="delete-btn" @click.stop="deleteTrack(track.id)">×</button>
-        </div>
-        <div class="bounds-row" v-if="isEnabled(track.id)">
-          <label>
-            Low:
-            <input
-              type="number"
-              :value="track.low"
-              step="0.1"
-              @change="onLowChange(track, $event)"
-              class="bounds-input"
-            />
-          </label>
-          <label>
-            High:
-            <input
-              type="number"
-              :value="track.high"
-              step="0.1"
-              @change="onHighChange(track, $event)"
-              class="bounds-input"
-            />
-          </label>
+      <div class="track-list">
+        <div
+          v-for="track in enabledNumberTracks"
+          :key="track.id"
+          class="track-item"
+          :class="{ 'track-front': isFront(track) }"
+          @click="setFront(track)"
+        >
+          <div class="track-row">
+            <span class="track-name">{{ track.def.name }}</span>
+            <button class="delete-btn" @click.stop="deleteTrack(track.id)" title="Delete track">×</button>
+          </div>
+          <div class="bounds-row" v-if="isFront(track)">
+            <label>
+              <span class="bounds-label">Low</span>
+              <input
+                type="number"
+                :value="track.low"
+                step="0.1"
+                @change="onLowChange(track, $event)"
+                class="bounds-input"
+              />
+            </label>
+            <label>
+              <span class="bounds-label">High</span>
+              <input
+                type="number"
+                :value="track.high"
+                step="0.1"
+                @change="onHighChange(track, $event)"
+                class="bounds-input"
+              />
+            </label>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Enum tracks section -->
-    <div class="track-section" v-if="enumTracks.length > 0">
+    <div class="track-section" v-if="enabledEnumTracks.length > 0">
       <div class="section-header">Enum Tracks</div>
-      <div
-        v-for="track in enumTracks"
-        :key="track.id"
-        class="track-item"
-        :class="{
-          'track-enabled': isEnabled(track.id),
-          'track-front': isFront(track),
-        }"
-        @click="setFront(track)"
-      >
-        <div class="track-row">
-          <input
-            type="checkbox"
-            :checked="isEnabled(track.id)"
-            @click.stop
-            @change="toggleEnabled(track.id)"
-            class="track-checkbox"
-          />
-          <span class="track-name">{{ track.def.name }}</span>
-          <button class="delete-btn" @click.stop="deleteTrack(track.id)">×</button>
+      <div class="track-list">
+        <div
+          v-for="track in enabledEnumTracks"
+          :key="track.id"
+          class="track-item"
+          :class="{ 'track-front': isFront(track) }"
+          @click="setFront(track)"
+        >
+          <div class="track-row">
+            <span class="track-name">{{ track.def.name }}</span>
+            <button class="delete-btn" @click.stop="deleteTrack(track.id)" title="Delete track">×</button>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Func tracks section -->
-    <div class="track-section" v-if="funcTracks.length > 0">
+    <div class="track-section" v-if="enabledFuncTracks.length > 0">
       <div class="section-header">Func Tracks</div>
-      <div
-        v-for="track in funcTracks"
-        :key="track.id"
-        class="track-item"
-        :class="{
-          'track-enabled': isEnabled(track.id),
-          'track-front': isFront(track),
-        }"
-        @click="setFront(track)"
-      >
-        <div class="track-row">
-          <input
-            type="checkbox"
-            :checked="isEnabled(track.id)"
-            @click.stop
-            @change="toggleEnabled(track.id)"
-            class="track-checkbox"
-          />
-          <span class="track-name">{{ track.def.name }}</span>
-          <button class="delete-btn" @click.stop="deleteTrack(track.id)">×</button>
+      <div class="track-list">
+        <div
+          v-for="track in enabledFuncTracks"
+          :key="track.id"
+          class="track-item"
+          :class="{ 'track-front': isFront(track) }"
+          @click="setFront(track)"
+        >
+          <div class="track-row">
+            <span class="track-name">{{ track.def.name }}</span>
+            <button class="delete-btn" @click.stop="deleteTrack(track.id)" title="Delete track">×</button>
+          </div>
         </div>
       </div>
     </div>
 
-    <div v-if="tracks.length === 0" class="empty-message">
-      No tracks
+    <div v-if="noTracksEnabled" class="empty-message">
+      Select tracks in view mode
     </div>
   </div>
 </template>
@@ -196,67 +174,77 @@ function redo() {
   width: v-bind('EDIT_SIDEBAR_WIDTH + "px"');
   min-width: v-bind('EDIT_SIDEBAR_WIDTH + "px"');
   background: v-bind('EDIT_SIDEBAR_BG_COLOR');
-  border-right: 1px solid #333;
-  overflow-y: auto;
+  border-right: 1px solid #2a2d30;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .undo-redo-row {
   display: flex;
   gap: 8px;
-  padding: 8px;
-  border-bottom: 1px solid #333;
+  padding: 10px 12px;
+  border-bottom: 1px solid #2a2d30;
+  flex-shrink: 0;
 }
 
 .undo-btn,
 .redo-btn {
   flex: 1;
   padding: 6px 12px;
-  background: #2a2a4a;
-  border: 1px solid #444;
+  background: #1e2024;
+  border: 1px solid #2a2d30;
   border-radius: 4px;
-  color: #e0e0e0;
+  color: #b0b0b0;
   font-size: 12px;
   cursor: pointer;
+  transition: all 0.15s ease;
 }
 
 .undo-btn:hover,
 .redo-btn:hover {
-  background: #3a3a5a;
+  background: #282c32;
+  color: #e0e0e0;
 }
 
 .track-section {
-  padding: 8px 0;
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid #2a2d30;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .section-header {
-  padding: 4px 12px;
-  font-size: 11px;
+  padding: 8px 12px 6px;
+  font-size: 10px;
   font-weight: 600;
-  color: #888;
+  color: #666;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 1px;
+  flex-shrink: 0;
+}
+
+.track-list {
+  max-height: v-bind('EDIT_SIDEBAR_SECTION_MAX_HEIGHT + "px"');
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .track-item {
   padding: 8px 12px;
   background: v-bind('EDIT_SIDEBAR_TRACK_BG');
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.15s ease;
+  border-left: 3px solid transparent;
 }
 
 .track-item:hover {
   background: v-bind('EDIT_SIDEBAR_TRACK_BG_HOVER');
 }
 
-.track-item.track-enabled {
-  background: v-bind('EDIT_SIDEBAR_TRACK_BG_ENABLED');
-}
-
 .track-item.track-front {
-  border-left: 3px solid #7b2cbf;
+  background: v-bind('EDIT_SIDEBAR_TRACK_BG_ENABLED');
+  border-left-color: #3a7ca5;
 }
 
 .track-row {
@@ -265,34 +253,40 @@ function redo() {
   gap: 8px;
 }
 
-.track-checkbox {
-  flex-shrink: 0;
-}
-
 .track-name {
   flex: 1;
   font-size: 12px;
-  color: #e0e0e0;
+  color: #c0c0c0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.track-front .track-name {
+  color: #e0e0e0;
+}
+
 .delete-btn {
   flex-shrink: 0;
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   padding: 0;
   background: transparent;
   border: none;
-  color: #666;
-  font-size: 16px;
+  color: #555;
+  font-size: 14px;
   cursor: pointer;
   border-radius: 3px;
+  opacity: 0;
+  transition: all 0.15s ease;
+}
+
+.track-item:hover .delete-btn {
+  opacity: 1;
 }
 
 .delete-btn:hover {
-  background: #ef4444;
+  background: #dc2626;
   color: #fff;
 }
 
@@ -300,31 +294,41 @@ function redo() {
   display: flex;
   gap: 12px;
   margin-top: 8px;
-  padding-left: 24px;
 }
 
 .bounds-row label {
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  color: #888;
+  gap: 6px;
+}
+
+.bounds-label {
+  font-size: 10px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .bounds-input {
-  width: 60px;
-  padding: 2px 4px;
-  background: #1a1a2e;
-  border: 1px solid #444;
+  width: 56px;
+  padding: 4px 6px;
+  background: #1a1c20;
+  border: 1px solid #2a2d30;
   border-radius: 3px;
-  color: #e0e0e0;
+  color: #c8c8c8;
   font-size: 11px;
+  transition: border-color 0.15s ease;
+}
+
+.bounds-input:focus {
+  outline: none;
+  border-color: #3a7ca5;
 }
 
 .empty-message {
-  padding: 20px;
+  padding: 24px 16px;
   text-align: center;
-  color: #666;
-  font-size: 13px;
+  color: #555;
+  font-size: 12px;
 }
 </style>

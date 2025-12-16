@@ -199,6 +199,8 @@ function onSliderInput(e: Event) {
 
 .demo-panel {
   display: flex;
+  /* flex-direction: column; */
+  max-width: 1000px;
   gap: 24px;
   padding: 12px 16px;
   background: #12122a;
@@ -312,6 +314,8 @@ function onSliderInput(e: Event) {
 }
 
 .editor-container {
+  width: 1000px;
+  height: 600px;
   flex: 1;
   overflow: hidden;
 }
